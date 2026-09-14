@@ -1,6 +1,5 @@
-import { useEffect } from "react";
-
 import "./App.css";
+import { useEffect } from "react";
 
 import DashboardHeader from "./components/DashboardHeader";
 import StudentCard from "./components/StudentCard";
@@ -9,50 +8,56 @@ import SearchBar from "./components/SearchBar";
 import SortControls from "./components/SortControls";
 import AddStudentForm from "./components/AddStudentForm";
 
-import {
-  useStudents,
-} from "./context/StudentContext";
-
-import {
-  useTheme,
-} from "./context/ThemeContext";
+import { useStudents } from "./context/StudentContext";
+import { useTheme } from "./context/ThemeContext";
 
 function App() {
   const {
     students,
+    displayedStudents,
+    favorites,
+    loading,
   } = useStudents();
 
-  const {
-    theme,
-  } = useTheme();
+  const { theme } = useTheme();
 
-  /*
-   * Dynamic document title
-   */
+
   useEffect(() => {
-    document.title =
-      `Dashboard — ${students.length} Students`;
-  }, [students.length]);
+    document.title = `Dashboard — ${displayedStudents.length} Students`;
+  }, [displayedStudents.length]);
 
   const averageGpa =
     students.length > 0
       ? students.reduce(
-          (sum, student) =>
-            sum + student.gpa,
+          (sum, student) => sum + student.gpa,
           0
         ) / students.length
       : 0;
 
   return (
     <div
-      className={`app theme-${theme}`}
+      className={`min-h-screen transition-colors duration-300 ${
+        theme === "dark"
+          ? "bg-slate-950 text-white"
+          : "bg-slate-50 text-slate-900"
+      }`}
     >
       <DashboardHeader />
 
-      <main className="dashboard-container">
-        <section className="dashboard-stats">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold">
+            Student Dashboard
+          </h1>
+
+          <p className="mt-2 text-slate-500 dark:text-slate-400">
+            Manage and explore student information.
+          </p>
+        </div>
+
+        <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <StatBadge
-            label="Students"
+            label="Total Students"
             value={students.length}
           />
 
@@ -62,62 +67,58 @@ function App() {
           />
 
           <StatBadge
-            label="Courses"
-            value={
-              students.reduce(
-                (total, student) =>
-                  total +
-                  student.courses
-                    .length,
-                0
-              )
-            }
+            label="Favorites"
+            value={favorites.length}
           />
-        </section>
+        </div>
 
-        <section className="controls">
-          <SearchBar />
+        <AddStudentForm />
 
-          <SortControls />
-        </section>
-
-        <section
-          id="students"
-          className="student-section"
-        >
-          <div className="section-heading">
-            <h2>
-              Students
-            </h2>
-
-            <p>
-              Showing{" "}
-              {students.length}{" "}
-              students
-            </p>
+        <section>
+          <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <SearchBar />
+            <SortControls />
           </div>
 
-          {students.length ===
-          0 ? (
-            <div className="empty-state">
-              No students found.
+          {loading ? (
+            <div className="flex min-h-64 flex-col items-center justify-center">
+              <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-blue-600" />
+
+              <p className="mt-4 text-slate-500">
+                Loading students...
+              </p>
+            </div>
+          ) : displayedStudents.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 p-12 text-center dark:border-slate-700">
+              <p className="font-semibold">
+                No students found.
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Try changing your search query.
+              </p>
             </div>
           ) : (
-            <div className="student-grid">
-              {students.map(
-                (student) => (
-                  <StudentCard
-                    key={student.id}
-                    {...student}
-                  />
-                )
-              )}
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {displayedStudents.map((student) => (
+                <StudentCard
+                  key={student.id}
+                  name={student.name}
+                  id={student.id}
+                  avatar={student.avatar}
+                  gpa={student.gpa}
+                  major={student.major}
+                  courses={student.courses}
+                />
+              ))}
             </div>
           )}
         </section>
-
-        <AddStudentForm />
       </main>
+
+      <footer className="border-t border-slate-200 py-6 text-center text-sm text-slate-500 dark:border-slate-800">
+        Student Dashboard — React Lab 3
+      </footer>
     </div>
   );
 }

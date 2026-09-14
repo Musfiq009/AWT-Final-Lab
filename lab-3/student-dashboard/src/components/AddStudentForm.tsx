@@ -1,10 +1,15 @@
-import {
-  FormEvent,
-  useEffect,
-  useState,
-} from "react";
+import { useEffect, useState } from "react";
 
 import { useStudents } from "../context/StudentContext";
+import { useTheme } from "../context/ThemeContext";
+
+interface FormData {
+  name: string;
+  id: string;
+  major: string;
+  gpa: string;
+  courses: string;
+}
 
 interface FormErrors {
   name?: string;
@@ -14,113 +19,99 @@ interface FormErrors {
   courses?: string;
 }
 
-const AddStudentForm = () => {
-  const {
-    students,
-    addStudent,
-  } = useStudents();
+function AddStudentForm() {
+  const { students, addStudent } = useStudents();
+  const { theme } = useTheme();
 
-  const [name, setName] =
-    useState("");
+  const [formData, setFormData] = useState<FormData>({
+    name: "",
+    id: "",
+    major: "",
+    gpa: "",
+    courses: "",
+  });
 
-  const [id, setId] =
-    useState("");
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [success, setSuccess] = useState(false);
 
-  const [major, setMajor] =
-    useState("");
-
-  const [gpa, setGpa] =
-    useState("");
-
-  const [courses, setCourses] =
-    useState("");
-
-  const [errors, setErrors] =
-    useState<FormErrors>({});
-
-  const [success, setSuccess] =
-    useState(false);
-
-  const validate = (): boolean => {
-    const newErrors: FormErrors =
-      {};
-
-    /*
-     * Name validation
-     */
-    if (!name.trim()) {
-      newErrors.name =
-        "Full name is required.";
+  /*
+   * Automatically hide success notification
+   * after 3 seconds.
+   */
+  useEffect(() => {
+    if (!success) {
+      return;
     }
 
-    /*
-     * ID validation
-     */
-    if (!id.trim()) {
+    const timer = setTimeout(() => {
+      setSuccess(false);
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [success]);
+
+  const handleChange = (
+    event: React.ChangeEvent<
+      HTMLInputElement
+    >
+  ) => {
+    const { name, value } = event.target;
+
+    setFormData((previous) => ({
+      ...previous,
+      [name]: value,
+    }));
+
+    setErrors((previous) => ({
+      ...previous,
+      [name]: undefined,
+    }));
+  };
+
+  const validate = () => {
+    const newErrors: FormErrors = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = "Full Name is required.";
+    }
+
+    if (!formData.id.trim()) {
+      newErrors.id = "Student ID is required.";
+    } else if (!/^\d+$/.test(formData.id)) {
       newErrors.id =
-        "Student ID is required.";
-    } else if (!/^\d+$/.test(id)) {
-      newErrors.id =
-        "Student ID must be numeric.";
+        "Student ID must contain numbers only.";
     } else if (
       students.some(
-        (student) =>
-          student.id === id
+        (student) => student.id === formData.id.trim()
       )
     ) {
-      newErrors.id =
-        "Student ID already exists.";
+      newErrors.id = "Student ID must be unique.";
     }
 
-    /*
-     * Major validation
-     */
-    if (!major.trim()) {
-      newErrors.major =
-        "Major is required.";
+    if (!formData.major.trim()) {
+      newErrors.major = "Major is required.";
     }
 
-    /*
-     * GPA validation
-     */
-    const numericGpa =
-      Number(gpa);
+    if (!formData.gpa.trim()) {
+      newErrors.gpa = "GPA is required.";
+    } else {
+      const gpa = Number(formData.gpa);
 
-    if (!gpa.trim()) {
-      newErrors.gpa =
-        "GPA is required.";
-    } else if (
-      Number.isNaN(numericGpa)
-    ) {
-      newErrors.gpa =
-        "GPA must be a number.";
-    } else if (
-      numericGpa < 0 ||
-      numericGpa > 4
-    ) {
-      newErrors.gpa =
-        "GPA must be between 0 and 4.0.";
-    }
-
-    /*
-     * Courses validation
-     */
-    if (!courses.trim()) {
-      newErrors.courses =
-        "At least one course is required.";
+      if (Number.isNaN(gpa) || gpa < 0 || gpa > 4) {
+        newErrors.gpa =
+          "GPA must be between 0 and 4.0.";
+      }
     }
 
     setErrors(newErrors);
 
-    return (
-      Object.keys(
-        newErrors
-      ).length === 0
-    );
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (
-    event: FormEvent<HTMLFormElement>
+    event: React.FormEvent<HTMLFormElement>
   ) => {
     event.preventDefault();
 
@@ -129,202 +120,175 @@ const AddStudentForm = () => {
     }
 
     const newStudent = {
-      name: name.trim(),
-      id: id.trim(),
-      avatar:
-        `https://i.pravatar.cc/150?u=${id}`,
-      gpa: Number(gpa),
-      major: major.trim(),
-      courses: courses
+      name: formData.name.trim(),
+      id: formData.id.trim(),
+      major: formData.major.trim(),
+      gpa: Number(formData.gpa),
+      courses: formData.courses
         .split(",")
-        .map(
-          (course) =>
-            course.trim()
-        )
-        .filter(Boolean),
+        .map((course) => course.trim())
+        .filter((course) => course.length > 0),
+      avatar: "/image-boy-avatar.jpg",
     };
 
     addStudent(newStudent);
 
-    setName("");
-    setId("");
-    setMajor("");
-    setGpa("");
-    setCourses("");
+    setFormData({
+      name: "",
+      id: "",
+      major: "",
+      gpa: "",
+      courses: "",
+    });
+
     setErrors({});
     setSuccess(true);
   };
 
-  /*
-   * Automatically hide
-   * success message
-   * after 3 seconds
-   */
-  useEffect(() => {
-    if (!success) {
-      return;
-    }
-
-    const timer =
-      setTimeout(() => {
-        setSuccess(false);
-      }, 3000);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [success]);
+  const inputClass =
+    theme === "dark"
+      ? "border-slate-700 bg-slate-900 text-white placeholder-slate-500"
+      : "border-slate-300 bg-white text-slate-900 placeholder-slate-400";
 
   return (
-    <section
-      id="add-student"
-      className="form-section"
-    >
-      <div className="section-heading">
-        <h2>
+    <section className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="mb-5">
+        <h2 className="text-xl font-bold">
           Add New Student
         </h2>
 
-        <p>
-          Register a new student
-          in the dashboard
+        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+          Register a new student in the dashboard.
         </p>
       </div>
 
       {success && (
-        <div className="success-message">
-          ✓ Student added
-          successfully!
+        <div className="mb-5 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700 dark:border-green-800 dark:bg-green-950 dark:text-green-300">
+          Student added successfully!
         </div>
       )}
 
       <form
-        className="student-form"
         onSubmit={handleSubmit}
+        className="grid grid-cols-1 gap-5 md:grid-cols-2"
       >
-        <div className="form-group">
-          <label>
+        <div>
+          <label className="mb-2 block text-sm font-semibold">
             Full Name
           </label>
 
           <input
             type="text"
-            value={name}
-            onChange={(event) =>
-              setName(
-                event.target.value
-              )
-            }
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Enter full name"
+            className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${inputClass}`}
           />
 
           {errors.name && (
-            <span className="error">
+            <p className="mt-1 text-sm text-red-500">
               {errors.name}
-            </span>
+            </p>
           )}
         </div>
 
-        <div className="form-group">
-          <label>
+        <div>
+          <label className="mb-2 block text-sm font-semibold">
             Student ID
           </label>
 
           <input
             type="text"
-            value={id}
-            onChange={(event) =>
-              setId(
-                event.target.value
-              )
-            }
+            name="id"
+            value={formData.id}
+            onChange={handleChange}
+            placeholder="Enter numeric ID"
+            className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${inputClass}`}
           />
 
           {errors.id && (
-            <span className="error">
+            <p className="mt-1 text-sm text-red-500">
               {errors.id}
-            </span>
+            </p>
           )}
         </div>
 
-        <div className="form-group">
-          <label>
+        <div>
+          <label className="mb-2 block text-sm font-semibold">
             Major
           </label>
 
           <input
             type="text"
-            value={major}
-            onChange={(event) =>
-              setMajor(
-                event.target.value
-              )
-            }
+            name="major"
+            value={formData.major}
+            onChange={handleChange}
+            placeholder="Enter major"
+            className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${inputClass}`}
           />
 
           {errors.major && (
-            <span className="error">
+            <p className="mt-1 text-sm text-red-500">
               {errors.major}
-            </span>
+            </p>
           )}
         </div>
 
-        <div className="form-group">
-          <label>
+        <div>
+          <label className="mb-2 block text-sm font-semibold">
             GPA
           </label>
 
           <input
             type="number"
-            step="0.01"
+            name="gpa"
+            value={formData.gpa}
+            onChange={handleChange}
             min="0"
             max="4"
-            value={gpa}
-            onChange={(event) =>
-              setGpa(
-                event.target.value
-              )
-            }
+            step="0.01"
+            placeholder="0.00 - 4.00"
+            className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${inputClass}`}
           />
 
           {errors.gpa && (
-            <span className="error">
+            <p className="mt-1 text-sm text-red-500">
               {errors.gpa}
-            </span>
+            </p>
           )}
         </div>
 
-        <div className="form-group">
-          <label>
+        <div className="md:col-span-2">
+          <label className="mb-2 block text-sm font-semibold">
             Courses
           </label>
 
           <input
             type="text"
+            name="courses"
+            value={formData.courses}
+            onChange={handleChange}
             placeholder="React, Database, Algorithms"
-            value={courses}
-            onChange={(event) =>
-              setCourses(
-                event.target.value
-              )
-            }
+            className={`w-full rounded-lg border px-4 py-3 outline-none focus:border-blue-500 ${inputClass}`}
           />
 
-          {errors.courses && (
-            <span className="error">
-              {errors.courses}
-            </span>
-          )}
+          <p className="mt-1 text-xs text-slate-500">
+            Separate courses using commas.
+          </p>
         </div>
 
-        <button
-          type="submit"
-          className="submit-button"
-        >
-          Add Student
-        </button>
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            className="rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition hover:bg-blue-700"
+          >
+            Add Student
+          </button>
+        </div>
       </form>
     </section>
   );
-};
+}
 
 export default AddStudentForm;

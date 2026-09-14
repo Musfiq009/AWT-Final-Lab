@@ -1,8 +1,9 @@
 import {
   createContext,
-  ReactNode,
   useContext,
+  useEffect,
   useState,
+  type ReactNode,
 } from "react";
 
 type Theme = "light" | "dark";
@@ -12,26 +13,33 @@ interface ThemeContextType {
   toggleTheme: () => void;
 }
 
-const ThemeContext =
-  createContext<ThemeContextType | undefined>(
-    undefined
-  );
+const ThemeContext = createContext<ThemeContextType | undefined>(
+  undefined
+);
 
 interface ThemeProviderProps {
   children: ReactNode;
 }
 
-export const ThemeProvider = ({
+export function ThemeProvider({
   children,
-}: ThemeProviderProps) => {
-  const [theme, setTheme] =
-    useState<Theme>("light");
+}: ThemeProviderProps) {
+  const [theme, setTheme] = useState<Theme>(() => {
+    const savedTheme = localStorage.getItem("student-dashboard-theme");
+
+    return savedTheme === "dark" ? "dark" : "light";
+  });
+
+  useEffect(() => {
+    localStorage.setItem(
+      "student-dashboard-theme",
+      theme
+    );
+  }, [theme]);
 
   const toggleTheme = () => {
-    setTheme((previous) =>
-      previous === "light"
-        ? "dark"
-        : "light"
+    setTheme((previousTheme) =>
+      previousTheme === "light" ? "dark" : "light"
     );
   };
 
@@ -42,16 +50,21 @@ export const ThemeProvider = ({
         toggleTheme,
       }}
     >
-      <div className={`theme-${theme}`}>
+      <div
+        className={
+          theme === "dark"
+            ? "min-h-screen bg-slate-950 text-white"
+            : "min-h-screen bg-slate-50 text-slate-900"
+        }
+      >
         {children}
       </div>
     </ThemeContext.Provider>
   );
-};
+}
 
-export const useTheme = () => {
-  const context =
-    useContext(ThemeContext);
+export function useTheme() {
+  const context = useContext(ThemeContext);
 
   if (!context) {
     throw new Error(
@@ -60,4 +73,4 @@ export const useTheme = () => {
   }
 
   return context;
-};
+}

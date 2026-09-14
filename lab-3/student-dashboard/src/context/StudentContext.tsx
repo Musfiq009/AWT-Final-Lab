@@ -1,215 +1,177 @@
 import {
   createContext,
-  ReactNode,
   useContext,
   useEffect,
   useMemo,
   useState,
+  type ReactNode,
 } from "react";
 
-import { Student } from "../types/student";
+import { studentData } from "../data/students";
+import type { Student } from "../types/student";
 
-import {
-  studentData,
-} from "../data/students";
-
-import {
-  SortOption,
-} from "../components/SortControls";
+export type SortOption = "default" | "name" | "gpa";
 
 interface StudentContextType {
   students: Student[];
+  displayedStudents: Student[];
   query: string;
   sortBy: SortOption;
   favorites: string[];
-
-  setQuery: (
-    query: string
-  ) => void;
-
-  setSortBy: (
-    sort: SortOption
-  ) => void;
-
-  addStudent: (
-    student: Student
-  ) => void;
-
-  removeStudent: (
-    id: string
-  ) => void;
-
-  toggleFavorite: (
-    id: string
-  ) => void;
+  loading: boolean;
+  setQuery: (query: string) => void;
+  setSortBy: (sort: SortOption) => void;
+  toggleFavorite: (id: string) => void;
+  removeStudent: (id: string) => void;
+  addStudent: (student: Student) => void;
 }
 
-const StudentContext =
-  createContext<
-    StudentContextType | undefined
-  >(undefined);
+const StudentContext = createContext<
+  StudentContextType | undefined
+>(undefined);
 
 interface StudentProviderProps {
   children: ReactNode;
 }
 
-export const StudentProvider = ({
+export function StudentProvider({
   children,
-}: StudentProviderProps) => {
-  const [students, setStudents] =
-    useState<Student[]>(() => {
-      const saved =
-        localStorage.getItem(
-          "students"
-        );
-
-      if (saved) {
-        try {
-          return JSON.parse(
-            saved
-          );
-        } catch {
-          return studentData;
-        }
-      }
-
-      return studentData;
-    });
-
-  const [query, setQuery] =
-    useState("");
-
+}: StudentProviderProps) {
+  const [students, setStudents] = useState<Student[]>([]);
+  const [query, setQuery] = useState("");
   const [sortBy, setSortBy] =
-    useState<SortOption>(
-      "default"
-    );
+    useState<SortOption>("default");
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
 
-  const [favorites, setFavorites] =
-    useState<string[]>([]);
+
+  useEffect(() => {
+    const savedStudents =
+      localStorage.getItem("student-dashboard-students");
+
+    if (savedStudents) {
+      try {
+        const parsedStudents: Student[] =
+          JSON.parse(savedStudents);
+
+        setStudents(parsedStudents);
+      } catch {
+        setStudents(studentData);
+      }
+    } else {
+      setStudents(studentData);
+    }
+
+    setLoading(false);
+    setHydrated(true);
+  }, []);
 
   /*
-   * Save students to localStorage
+   * Persist student list whenever it changes.
    */
   useEffect(() => {
-    localStorage.setItem(
-      "students",
-      JSON.stringify(students)
-    );
-  }, [students]);
+    if (hydrated) {
+      localStorage.setItem(
+        "student-dashboard-students",
+        JSON.stringify(students)
+      );
+    }
+  }, [students, hydrated]);
 
   /*
-   * Add student
+   * Search + sorting.
    */
-  const addStudent = (
-    student: Student
-  ) => {
-    setStudents((previous) => [
-      ...previous,
+  const displayedStudents = useMemo(() => {
+    const search = query.toLowerCase().trim();
+
+    const filtered = students.filter((student) => {
+      return (
+        student.name.toLowerCase().includes(search) ||
+        student.major.toLowerCase().includes(search)
+      );
+    });
+
+    const sorted = [...filtered];
+
+    if (sortBy === "name") {
+      sorted.sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+    }
+
+    if (sortBy === "gpa") {
+      sorted.sort((a, b) => b.gpa - a.gpa);
+    }
+
+    return sorted;
+  }, [students, query, sortBy]);
+
+  /*
+   * Add a new student.
+   */
+  const addStudent = (student: Student) => {
+    setStudents((previousStudents) => [
+      ...previousStudents,
       student,
     ]);
   };
 
   /*
-   * Remove student
+   * Remove a student.
    */
-  const removeStudent = (
-    id: string
-  ) => {
-    setStudents((previous) =>
-      previous.filter(
-        (student) =>
-          student.id !== id
+  const removeStudent = (id: string) => {
+    setStudents((previousStudents) =>
+      previousStudents.filter(
+        (student) => student.id !== id
       )
     );
 
-    setFavorites((previous) =>
-      previous.filter(
-        (favoriteId) =>
-          favoriteId !== id
+    setFavorites((previousFavorites) =>
+      previousFavorites.filter(
+        (favoriteId) => favoriteId !== id
       )
     );
   };
 
   /*
-   * Toggle favorite
+   * Favorite toggle.
    */
-  const toggleFavorite = (
-    id: string
-  ) => {
-    setFavorites((previous) =>
-      previous.includes(id)
-        ? previous.filter(
-            (favoriteId) =>
-              favoriteId !== id
-          )
-        : [...previous, id]
-    );
+  const toggleFavorite = (id: string) => {
+    setFavorites((previousFavorites) => {
+      if (previousFavorites.includes(id)) {
+        return previousFavorites.filter(
+          (favoriteId) => favoriteId !== id
+        );
+      }
+
+      return [...previousFavorites, id];
+    });
   };
-
-  /*
-   * Search + sorting
-   */
-  const filteredStudents =
-    useMemo(() => {
-      const search =
-        query.toLowerCase();
-
-      const filtered =
-        students.filter(
-          (student) =>
-            student.name
-              .toLowerCase()
-              .includes(search) ||
-            student.major
-              .toLowerCase()
-              .includes(search)
-        );
-
-      if (sortBy === "name") {
-        return [...filtered].sort(
-          (a, b) =>
-            a.name.localeCompare(
-              b.name
-            )
-        );
-      }
-
-      if (sortBy === "gpa") {
-        return [...filtered].sort(
-          (a, b) =>
-            b.gpa - a.gpa
-        );
-      }
-
-      return filtered;
-    }, [
-      students,
-      query,
-      sortBy,
-    ]);
 
   return (
     <StudentContext.Provider
       value={{
-        students: filteredStudents,
+        students,
+        displayedStudents,
         query,
         sortBy,
         favorites,
+        loading,
         setQuery,
         setSortBy,
-        addStudent,
-        removeStudent,
         toggleFavorite,
+        removeStudent,
+        addStudent,
       }}
     >
       {children}
     </StudentContext.Provider>
   );
-};
+}
 
-export const useStudents = () => {
-  const context =
-    useContext(StudentContext);
+export function useStudents() {
+  const context = useContext(StudentContext);
 
   if (!context) {
     throw new Error(
@@ -218,4 +180,4 @@ export const useStudents = () => {
   }
 
   return context;
-};
+}
