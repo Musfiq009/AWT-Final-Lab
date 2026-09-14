@@ -1,36 +1,40 @@
 import type { Student } from "../types/student";
+import girlImg from "../../public/images-girl-avatar.jpg"
+import girlImg2 from "../../public/images-girl-avatar2.jpg"
+import boyImg from "../../public/image-boy-avatar.jpg"
+import boyImg2 from "../../public/images-boy-avatar2.jpg"
 
 
 export const studentData: Student[] = [
   {
-    name: "Kelvin Otis",
-    id: "1001",
-    avatar: "https://i.pravatar.cc/150?img=12",
-    gpa: 3.85,
+    name: "Musfiq Rahat",
+    id: "1",
+    avatar: boyImg,
+    gpa: 3.55,
     major: "Computer Science",
     courses: ["React", "Database", "Algorithms"],
   },
   {
-    name: "Sarah Ahmed",
-    id: "1002",
-    avatar: "https://i.pravatar.cc/150?img=47",
-    gpa: 3.72,
+    name: "Anika Tasnim",
+    id: "2",
+    avatar: girlImg2,
+    gpa: 3.32,
     major: "Software Engineering",
     courses: ["JavaScript", "React", "Web Technology"],
   },
   {
-    name: "Michael Smith",
-    id: "1003",
-    avatar: "https://i.pravatar.cc/150?img=11",
-    gpa: 3.91,
+    name: "Meherab Khan",
+    id: "3",
+    avatar: boyImg2,
+    gpa: 3.88,
     major: "Computer Science",
     courses: ["Python", "AI", "Machine Learning"],
   },
   {
-    name: "Emily Johnson",
-    id: "1004",
-    avatar: "https://i.pravatar.cc/150?img=44",
-    gpa: 3.64,
+    name: "Raisha Tabassum",
+    id: "4",
+    avatar: girlImg,
+    gpa: 3.34,
     major: "Information Technology",
     courses: ["Networking", "Database", "Security"],
   },
